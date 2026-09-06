@@ -4,6 +4,11 @@
 
 [繁體中文](README.zh-TW.md) · [Architecture](docs/architecture.md) · [Governance](docs/governance.md) · [Known failure modes](docs/failure-modes.md)
 
+The [product specification](docs/product-spec.md) separates the longer-term quality
+management platform from the current reference core. For an existing library, start
+with the [read-only inventory audit](docs/inventory-audit.md); a sidecar's existence
+does not establish extraction completeness or approval.
+
 One original PDF or Word revision produces a full-text Markdown file **and a separate navigation brief**. An agent follows a small catalog, opens a brief, and reads the relevant source pages. No vector database, model account, or cloud service is required by the core.
 
 ```mermaid

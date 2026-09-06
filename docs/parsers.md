@@ -2,7 +2,8 @@
 
 ## Implemented parser boundary
 
-The adapter accepts original bytes, an allowed suffix and an explicit OCR flag. It returns:
+The adapter accepts original bytes, an allowed suffix, an explicit OCR flag and
+optional local OCR language(s). It returns:
 
 ```json
 {
@@ -15,6 +16,12 @@ The adapter accepts original bytes, an allowed suffix and an explicit OCR flag. 
 ```
 
 UTF-8 `.txt` and `.md` use a strict local decoder. Binary/NUL input and invalid encoding fail. Other allowed formats use [LiteParse](https://github.com/run-llama/liteparse), pinned to the tested CLI version 2.0.0. Other versions fail with `UNVERIFIED_PARSER_VERSION`; upgrading requires compatibility tests and a deliberate adapter change. The local executable and installed dependencies are part of the trusted host environment.
+
+For Traditional Chinese scans use `ingest document.pdf --ocr --ocr-language chi_tra+eng`.
+Install the corresponding Tesseract language data locally and set `TESSDATA_PREFIX`
+for the invoking process if required by the host. An OCR-language failure can
+occur even when the parser exits zero: recognized failures remain partial or
+unreadable and cannot be published. OCR quality still needs visual review.
 
 The adapter runs with an argument array, fixed temporary filenames, a timeout and captured output. Parser failure is explicit; stderr is not echoed into public logs because it may contain document text. A hung or compromised parser still needs an OS sandbox/resource limits in a production hostile-upload service; this reference CLI is not such a service.
 

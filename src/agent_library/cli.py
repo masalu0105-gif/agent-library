@@ -8,6 +8,7 @@ from pathlib import Path
 from . import __version__
 from .bundles import export_bundle, verify_bundle
 from .core import Library, LibraryError
+from .inventory import audit_inventory
 
 
 def parser():
@@ -22,6 +23,7 @@ def parser():
     ingest.add_argument("--metadata", type=Path)
     ingest.add_argument("--document-id")
     ingest.add_argument("--ocr", action="store_true", help="Explicitly enable local LiteParse OCR")
+    ingest.add_argument("--ocr-language", default="eng", help="Local OCR language(s), e.g. chi_tra+eng; used with --ocr")
     for name in ["scan", "status", "map"]:
         sub.add_parser(name)
     plan = sub.add_parser("plan")
@@ -54,10 +56,17 @@ def parser():
     verify = sub.add_parser("verify-bundle")
     verify.add_argument("folder", type=Path)
     verify.add_argument("--expected-sha256")
+    inventory = sub.add_parser("audit-inventory", help="Read-only audit of a complete private metadata snapshot")
+    inventory.add_argument("snapshot", type=Path)
+    inventory.add_argument("--root-id", action="append", required=True)
+    inventory.add_argument("--archive-id", action="append", default=[])
     return p
 
 
 def dispatch(args):
+    if args.command == "audit-inventory":
+        return audit_inventory(json.loads(args.snapshot.read_text(encoding="utf-8")),
+                               root_ids=args.root_id, archive_ids=args.archive_id)
     if args.command == "verify-bundle":
         return verify_bundle(args.folder, expected_sha256=args.expected_sha256)
     if args.home is None:
@@ -67,7 +76,8 @@ def dispatch(args):
     library = Library(args.home)
     if args.command == "ingest":
         metadata = json.loads(args.metadata.read_text(encoding="utf-8")) if args.metadata else {}
-        return library.ingest(args.file, metadata, document_id=args.document_id, ocr=args.ocr)
+        return library.ingest(args.file, metadata, document_id=args.document_id, ocr=args.ocr,
+                              ocr_language=args.ocr_language)
     if args.command in {"scan", "status", "map"}:
         return getattr(library, args.command)()
     if args.command == "plan":

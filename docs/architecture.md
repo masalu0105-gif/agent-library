@@ -1,5 +1,10 @@
 # Architecture
 
+The [product specification](product-spec.md) records the agreed clinical-laboratory
+and IVD quality-management scope and separately managed de-identification engine.
+This page describes the implemented document core; broader product capabilities
+are staged work, not completed features.
+
 ## Two planes, one explicit publication boundary
 
 The **data plane** contains originals, full extraction, navigation briefs and current manifests. The **control plane** contains policy, review plans, receipts and audit events. A reading agent gets a published bundle or a constrained read API. A curator may propose changes. A trusted operator owns publication.

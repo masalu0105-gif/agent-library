@@ -222,12 +222,12 @@ class Library:
         require(digest(data) == sha, "INTEGRITY", "Snapshot hash mismatch.")
         return data
 
-    def ingest(self, path: Path, metadata=None, *, document_id=None, ocr=False) -> dict:
+    def ingest(self, path: Path, metadata=None, *, document_id=None, ocr=False, ocr_language="eng") -> dict:
         policy = self._policy()
         path = self._source(path, policy)
         data = self._capture(path, policy)
         metadata = metadata_checked(dict(metadata or {}))
-        parsed = extract(data, path.suffix.lower(), ocr=ocr)
+        parsed = extract(data, path.suffix.lower(), ocr=ocr, ocr_language=ocr_language)
         with self._db(write=True) as db:
             old = db.execute("SELECT * FROM documents WHERE source_path=?", (str(path),)).fetchone()
             if old:

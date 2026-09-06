@@ -4,6 +4,13 @@
 
 [English](README.md) · [架構](docs/architecture.md) · [治理規則](docs/governance.md) · [踩坑與驗證對照](docs/failure-modes.md)
 
+[產品共識與發展邊界](docs/product-spec.md)：完整產品面向醫院檢驗科及 IVD
+公司的品質管理；目前實作文件圖書館核心。去識別化引擎獨立管理，
+透過公開介面整合；院內病人資料與受控雲端分析是後續階段。
+
+既有資料庫可先用 [唯讀清冊稽核](docs/inventory-audit.md)，找出同名衝突、
+缺少文字側車及未驗證內容；工具不會把同雜湊檔案自動刪除或合併。
+
 每一份原檔的每一個版本，都保留三種不同用途的內容：
 
 1. **原檔**：保留 PDF／Word 的原始位元組，提供查證與交付。
