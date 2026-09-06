@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-library"
-version = "0.2.0"
+version = "0.2.1"
 description = "An inspectable, versioned document library for AI agents. No vector database required."
 readme = "README.md"
 requires-python = ">=3.11"

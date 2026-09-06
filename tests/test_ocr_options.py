@@ -44,5 +44,18 @@ class OcrOptionsTests(unittest.TestCase):
         run.assert_not_called()
         self.assertIn("INVALID_OCR_LANGUAGE", result["warnings"])
 
+    def test_image_preview_preserves_original_without_pdf_screenshot(self):
+        def run(args, **kwargs):
+            self.assertNotIn("screenshot", args)
+            if "--version" not in args:
+                Path(args[args.index("-o")+1]).write_text(json.dumps({"pages":[{"page":1,"text":""}]}))
+            return CompletedProcess(args, 0, stdout=b"2.0.0\n", stderr=b"")
+        for suffix, data in [(".jpg", b"\xff\xd8\xffsynthetic"), (".png", b"\x89PNG\r\n\x1a\nsynthetic")]:
+            with self.subTest(suffix=suffix), patch("agent_library.extractors.shutil.which", return_value="lit"), patch("agent_library.extractors.subprocess.run", side_effect=run):
+                result=extract(data, suffix)
+                self.assertEqual(result["_asset_bytes"][result["pages"][0]["preview"]], data)
+                self.assertNotIn("PAGE_PREVIEW_FAILED", result["warnings"])
+                self.assertEqual(result["status"], "needs_ocr")
+
 
 if __name__ == '__main__': unittest.main()

@@ -51,6 +51,9 @@ and failed conversions are not complete extraction. OCR still needs visual revie
 PNG/JPEG/TIFF may use LiteParse with its image conversion dependency. This extension
 allowance is not OCR accuracy qualification. Existing policies retain their old
 extension allowlist until deliberately updated.
+Single-page PNG/JPEG inputs retain their original image bytes as the page preview;
+they do not use the PDF-only screenshot command. Missing OCR remains visible even
+when the original image is preserved successfully.
 
 ## Artifact and fidelity contract
 

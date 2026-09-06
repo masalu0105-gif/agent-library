@@ -98,14 +98,24 @@ def extract(data: bytes, suffix: str, *, ocr: bool = False, ocr_language: str = 
                         "width": page.get("width"), "height": page.get("height"),
                         "text_items": page.get("textItems", []), "coordinate_system": "liteparse_native"})
                 try:
-                    previews = Path(folder) / "previews"
-                    subprocess.run([executable, "screenshot", str(source), "-o", str(previews), "--dpi", "120"],
-                                   capture_output=True, timeout=120, check=True)
-                    for page in result["pages"]:
-                        raw = (previews / f"page_{page['number']}.png").read_bytes()
-                        if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
-                            raise ValueError("Invalid page preview")
-                        page["preview"] = add_asset(result, raw, "png", "image/png", "page_preview")
+                    if suffix in {".png", ".jpg", ".jpeg"}:
+                        # The source already is the visual evidence; screenshot accepts PDFs only.
+                        extension, media, signature = ("png", "image/png", b"\x89PNG\r\n\x1a\n") if suffix == ".png" else ("jpg", "image/jpeg", b"\xff\xd8\xff")
+                        if len(result["pages"]) != 1 or not data.startswith(signature):
+                            raise ValueError("Invalid single-frame image")
+                        result["pages"][0]["preview"] = add_asset(result, data, extension, media, "original_image")
+                        result["capabilities"]["visuals"] = "original_image"
+                        result["settings"]["adapter_revision"] = 3
+                        result["settings"]["preview_dpi"] = None
+                    else:
+                        previews = Path(folder) / "previews"
+                        subprocess.run([executable, "screenshot", str(source), "-o", str(previews), "--dpi", "120"],
+                                       capture_output=True, timeout=120, check=True)
+                        for page in result["pages"]:
+                            raw = (previews / f"page_{page['number']}.png").read_bytes()
+                            if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
+                                raise ValueError("Invalid page preview")
+                            page["preview"] = add_asset(result, raw, "png", "image/png", "page_preview")
                 except (OSError, subprocess.SubprocessError, ValueError):
                     result["status"] = "partial"
                     result["warnings"].append("PAGE_PREVIEW_FAILED")
