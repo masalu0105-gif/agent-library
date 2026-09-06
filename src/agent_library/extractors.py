@@ -61,6 +61,19 @@ def extract(data: bytes, suffix: str, *, ocr: bool = False, ocr_language: str = 
             with tempfile.TemporaryDirectory(prefix="agent-library-parse-") as folder:
                 source, output = Path(folder) / ("document" + suffix), Path(folder) / "parsed.json"
                 source.write_bytes(data)
+                if suffix in {".doc", ".docx", ".xlsx", ".pptx"}:
+                    office = shutil.which("libreoffice") or shutil.which("soffice")
+                    if not office:
+                        return {**result, "status": "unsupported", "warnings": ["LIBREOFFICE_NOT_INSTALLED"]}
+                    # Parse and preview the SAME conversion; screenshot does not convert Office inputs.
+                    profile = (Path(folder) / "office-profile").as_uri()
+                    subprocess.run([office, f"-env:UserInstallation={profile}", "--headless", "--convert-to", "pdf",
+                                    "--outdir", folder, str(source)], capture_output=True, timeout=120, check=True)
+                    source = Path(folder) / "document.pdf"
+                    rendered = source.read_bytes()
+                    if not rendered.startswith(b"%PDF-"):
+                        raise ValueError("Office conversion did not produce a PDF")
+                    result["rendered_asset"] = add_asset(result, rendered, "pdf", "application/pdf", "rendered_document")
                 args = [executable, "parse", str(source), "--format", "json", "-o", str(output)]
                 if not ocr:
                     args.append("--no-ocr")

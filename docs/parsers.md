@@ -7,6 +7,11 @@ content-addressed visual assets. Schema 1 snapshots stay readable without rewrit
 Re-ingestion creates a candidate when parser output, settings or assets change;
 current publication still requires the existing review workflow.
 
+Some Office PDF generators include timestamps in rendered bytes. An explicit new
+ingestion can therefore create another extraction revision of the same source hash.
+This is not a new upstream document revision. Reconciliation skips unchanged sources
+that already have a successful extraction instead of repeatedly rendering them.
+
 | Profile | Preserved | Limits |
 | --- | --- | --- |
 | UTF-8 text / Markdown | Decoded text | External image links are not downloaded |
@@ -36,6 +41,10 @@ agent-library --home /private/runtime ingest /private/sources/scan.pdf --ocr --o
 
 On Windows use npm.cmd; the adapter invokes lit.cmd. PDF previews render locally at
 120 DPI. OCR is off unless requested; language data must be provisioned separately.
+For Office inputs on the LiteParse route, LibreOffice converts once using an
+isolated temporary profile. Text and PNGs use that same retained PDF; it is included
+as a version-bound rendered_document asset. The screenshot CLI cannot consume Word
+directly. LibreOffice/soffice must be on PATH for this route.
 Missing previews, language errors (even with a zero process exit code), empty pages
 and failed conversions are not complete extraction. OCR still needs visual review.
 

@@ -4,7 +4,7 @@ import html
 import re
 
 
-ASSET_PATH = re.compile(r"assets/([a-f0-9]{64})\.(png|jpg|gif|webp|tiff|bmp|json|html|xml|bin)")
+ASSET_PATH = re.compile(r"assets/([a-f0-9]{64})\.(png|jpg|gif|webp|tiff|bmp|json|html|xml|pdf|bin)")
 MAX_ASSET_BYTES = 128 * 1024 * 1024
 
 
@@ -45,8 +45,9 @@ def asset_manifest(extraction):
         refs += [table["asset"] for table in page.get("tables", [])]
         if any(ref not in assets for ref in refs):
             raise ValueError("Unresolved page asset")
-    if extraction.get("raw_asset") and extraction["raw_asset"] not in assets:
-        raise ValueError("Unresolved parser output")
+    for key in ["raw_asset", "rendered_asset"]:
+        if extraction.get(key) and extraction[key] not in assets:
+            raise ValueError("Unresolved parser output")
     if any(item["asset"] not in assets for item in extraction.get("embedded_media", [])):
         raise ValueError("Unresolved embedded media")
     return assets

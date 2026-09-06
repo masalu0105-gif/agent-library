@@ -31,8 +31,8 @@ def verify(base, office=False):
     types = ["pdf", "docx"] if office else ["pdf"]
     for suffix in types:
         staged = library.ingest(source / ("guide." + suffix))
-        assert staged["quality"] == "extracted", staged
         review = library.read(staged["version_id"], historical=True)
+        assert staged["quality"] == "extracted", {"suffix": suffix, "stage": staged, "warnings": review["warnings"]}
         texts = [page["text"] for page in review["pages"]]
         assert "000123" in texts[0] if suffix == "pdf" else "000456" in texts[0]
         if suffix == "pdf":
@@ -41,6 +41,8 @@ def verify(base, office=False):
         preview = library.read(staged["version_id"], historical=True, asset=review["pages"][0]["preview"])
         assert Path(preview["snapshot_path"]).read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
         assert review["capabilities"]["tables"] == "visual_only"
+        if suffix == "docx":
+            assert any(asset["role"] == "rendered_document" for asset in review["assets"].values())
         assert "full.md#page-1" in library.read(staged["version_id"], brief="brief.md", historical=True)["markdown"]
         plan = library.plan(staged["version_id"], reason="Reviewed synthetic parser fixture")
         library.approve(plan["plan_id"], plan["digest"], "parser-verifier")

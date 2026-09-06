@@ -175,6 +175,30 @@ class AssetTests(unittest.TestCase):
         self.assertEqual(result["assets"], {})
         self.assertIn("MARKDOWN_ASSETS_NOT_IMPORTED", result["warnings"])
 
+    def test_office_text_and_previews_use_same_retained_pdf(self):
+        inputs = []
+        def run(args, **kwargs):
+            if "--version" in args:
+                return CompletedProcess(args, 0, stdout=b"2.0.0", stderr=b"")
+            if "--convert-to" in args:
+                folder = Path(args[args.index("--outdir") + 1])
+                (folder / "document.pdf").write_bytes(b"%PDF-synthetic-render")
+            elif "parse" in args:
+                inputs.append(args[2])
+                Path(args[args.index("-o") + 1]).write_text(json.dumps({"pages": [{"page": 1, "text": "Converted page"}]}))
+            elif "screenshot" in args:
+                inputs.append(args[2])
+                folder = Path(args[args.index("-o") + 1]);folder.mkdir()
+                (folder / "page_1.png").write_bytes(b"\x89PNG\r\n\x1a\nsynthetic")
+            return CompletedProcess(args, 0, stdout=b"", stderr=b"")
+        with patch("agent_library.extractors.shutil.which", side_effect=lambda name: name), patch("agent_library.extractors.subprocess.run", side_effect=run):
+            result = extract(b"synthetic office", ".docx")
+        self.assertEqual(result["status"], "extracted")
+        self.assertEqual(len(inputs), 2)
+        self.assertEqual(inputs[0], inputs[1])
+        self.assertTrue(inputs[0].endswith("document.pdf"))
+        self.assertEqual(result["_asset_bytes"][result["rendered_asset"]], b"%PDF-synthetic-render")
+
 
 if __name__ == "__main__":
     unittest.main()
