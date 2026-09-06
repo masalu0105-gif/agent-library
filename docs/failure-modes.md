@@ -1,10 +1,13 @@
 # Failures the architecture is designed to expose
 
-These are generalized lessons from operating document libraries and multi-agent deployments. No private incident transcript, business file, identifier or infrastructure address is included. Implemented checks below refer to runnable methods in `tests/test_library.py`; planned controls are deliberately distinguished from completed tests.
+These are generalized lessons from operating document libraries and multi-agent deployments. No private incident transcript, business file, identifier or infrastructure address is included. Implemented checks below refer to `tests/test_library.py`, `tests/test_assets.py` and synthetic parser verifiers; planned controls are distinguished from completed tests.
 
 | Failure | Implemented response / evidence | Remaining boundary |
 | --- | --- | --- |
 | A nonempty sidecar contains only a filename, placeholder or one paragraph | `test_partial_and_placeholder_extraction_never_publish`; actual two-page PDF and blank-page verifier | Text on every page still does not prove visual fidelity |
+| Markdown arrives without its referenced image | Asset set/hash checks at ingestion, read, apply and export; `test_missing_or_changed_asset_blocks_read_and_apply` | Raw Markdown external references are partial until a future asset importer exists |
+| Merged table cells flatten or values shift | Real DOCX merged-row/column and exact numeric checks in `examples/verify_multimodal.py` | PDF cell reconstruction and complex/ambiguous table review remain separate work |
+| A field matches OCR but the OCR misread the original | Version-bound LangExtract text/offset bridge; exact Unicode-offset checks | Text grounding is not original-region verification |
 | A hardcoded file ID retrieves an archived revision | `test_archive_and_restore_keep_all_snapshots`; current pointer, historical access explicit | Cloud ID resolution planned |
 | A new brief points to old full text | `test_all_four_artifacts_are_verified`, `test_brief_is_separate_bounded_and_points_to_fulltext` | Semantic grounding of model-written claims planned |
 | New NAS file is still being copied or emits duplicate events | `test_scan_waits_for_stability_and_recovers_after_restart`, `test_file_change_resets_stability_window`, `test_duplicate_event_is_idempotent` | Post-capture upstream edits require another scan |

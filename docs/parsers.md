@@ -1,54 +1,119 @@
-# Full text and briefs are different artifacts
+# Document parsing, visual evidence and LangExtract
 
-## Implemented parser boundary
+## Implemented in v0.2
 
-The adapter accepts original bytes, an allowed suffix, an explicit OCR flag and
-optional local OCR language(s). It returns:
+Schema 2 retains original bytes, full Markdown, separate navigation briefs and
+content-addressed visual assets. Schema 1 snapshots stay readable without rewrites.
+Re-ingestion creates a candidate when parser output, settings or assets change;
+current publication still requires the existing review workflow.
 
-```json
-{
-  "schema_version": 1,
-  "method": "liteparse-2.0.0:no-ocr",
-  "status": "extracted",
-  "pages": [{"number": 1, "text": "Synthetic source text."}],
-  "warnings": []
-}
+| Profile | Preserved | Limits |
+| --- | --- | --- |
+| UTF-8 text / Markdown | Decoded text | External image links are not downloaded |
+| LiteParse 2.0.0 | Original parser JSON, text boxes, dimensions, page text and a PNG preview of every rendered page | PDF tables are `visual_only`, not reconstructed cells |
+| MarkItDown 0.1.7 Office: DOCX | Mammoth reading + MarkItDown HTML rendering; embedded images, table cells, row/column spans, native main-document XML | Logical section, not printed pages; unsupported parts/conversion warnings stay partial |
+| MarkItDown Office: XLSX | openpyxl cells, leading-zero strings, formula text, cached values, merged cells and packaged images | Charts/drawings/print layout not rendered; candidates remain partial and cannot publish |
+
+This narrow composed Office profile uses MarkItDown's HtmlConverter, not generic
+URL conversion, plugins, an LLM client or Azure. Its output differs from the stock
+MarkItDown CLI. PDF/OCR requests to this profile are rejected. Docling and PaddleOCR
+remain candidates for PDF cell reconstruction; neither is invoked by these profiles.
+
+## Run the real verifiers
+
+```sh
+npm install -g @llamaindex/liteparse@2.0.0
+python -m pip install ".[office]"
+python examples/verify_liteparse.py
+# With LibreOffice:
+python examples/verify_liteparse.py --office
+python examples/verify_multimodal.py
+
+agent-library --home /private/runtime ingest /private/sources/guide.pdf
+agent-library --home /private/runtime ingest /private/sources/guide.docx --parser markitdown
+agent-library --home /private/runtime ingest /private/sources/scan.pdf --ocr --ocr-language chi_tra+eng
 ```
 
-UTF-8 `.txt` and `.md` use a strict local decoder. Binary/NUL input and invalid encoding fail. Other allowed formats use [LiteParse](https://github.com/run-llama/liteparse), pinned to the tested CLI version 2.0.0. Other versions fail with `UNVERIFIED_PARSER_VERSION`; upgrading requires compatibility tests and a deliberate adapter change. The local executable and installed dependencies are part of the trusted host environment.
+On Windows use npm.cmd; the adapter invokes lit.cmd. PDF previews render locally at
+120 DPI. OCR is off unless requested; language data must be provisioned separately.
+Missing previews, language errors (even with a zero process exit code), empty pages
+and failed conversions are not complete extraction. OCR still needs visual review.
 
-For Traditional Chinese scans use `ingest document.pdf --ocr --ocr-language chi_tra+eng`.
-Install the corresponding Tesseract language data locally and set `TESSDATA_PREFIX`
-for the invoking process if required by the host. An OCR-language failure can
-occur even when the parser exits zero: recognized failures remain partial or
-unreadable and cannot be published. OCR quality still needs visual review.
+PNG/JPEG/TIFF may use LiteParse with its image conversion dependency. This extension
+allowance is not OCR accuracy qualification. Existing policies retain their old
+extension allowlist until deliberately updated.
 
-The adapter runs with an argument array, fixed temporary filenames, a timeout and captured output. Parser failure is explicit; stderr is not echoed into public logs because it may contain document text. A hung or compromised parser still needs an OS sandbox/resource limits in a production hostile-upload service; this reference CLI is not such a service.
+## Artifact and fidelity contract
 
-## Fidelity contract
+Each extraction.json binds assets/<sha256>.<extension> to SHA-256, size, media type
+and role. Pages may include text_items, preview, images, tables, markdown and a
+source locator. Table cells have zero-based row/column, positive rowspan/colspan
+and extracted text. Generated HTML escapes cell content and keeps merged cells.
+Raw embedded images are preserved byte-for-byte; unsupported formats are attachments.
 
-| Artifact | Preserved | Limits |
-| --- | --- | --- |
-| Original | Exact captured bytes and SHA-256 | Snapshot may differ from a subsequently changed NAS file |
-| Extraction JSON | All returned page text and page numbers | Adapter currently omits parser bounding boxes and image assets |
-| Full Markdown | All returned text, in page order, with `Page N` headings | Tables may flatten; diagrams and reading order need visual review |
-| Brief Markdown | Short page excerpts and links to the same version | Navigation only; no semantic importance ranking |
+PDF coordinates remain in the parser's native coordinate system and original JSON,
+not preview pixels. Office locations identify package parts or worksheets. Page N
+anchors for logical sections do not claim printed page numbers. Unsupported Office
+parts, unlocated media and model interpretations must not be called faithful text.
 
-A populated text layer can still have wrong numbers, missing footnotes, columns in the wrong order or unrecognized images. Conversely, an intentionally blank page makes the conservative mechanical check `partial`; review or a future explicit blank-page adjudication is needed. Do not silently relabel a placeholder Markdown as complete.
+```text
+documents/<version>/
+  original.docx
+  full.md
+  extraction.json
+  brief.md
+  sections/...
+  assets/<sha256>.png
+  assets/<sha256>.html
+  assets/<sha256>.xml
+```
 
-LiteParse handles Word through a conversion dependency such as LibreOffice. `examples/verify_liteparse.py --office` generates a synthetic DOCX and verifies actual extraction, both Markdown roles and publication. Legacy `.doc`, spreadsheet/presentation formats, image-only OCR, complex tables and multilingual visual fidelity are **not** covered by this fixture and are not production-qualified by it.
+Assets are immutable runtime objects and relative files in exports. Generated
+image/table links do not contain temporary paths. Approvals bind extraction hashes,
+which bind asset hashes. Read, apply, restore and export verify referenced bytes.
+Missing/corrupt assets or removed manifest entries fail verification. Read assets
+through the same historical/current and freshness boundary as text:
 
-OCR is disabled unless `ingest --ocr` is used. Local OCR dependencies may need model/language downloads at initial setup. Provision and test those separately under the deployment's network policy. The reference adapter makes no cloud model calls; installing dependencies is a separate network operation.
+```sh
+agent-library --home /private/runtime read VERSION_ID --historical --page 1
+agent-library --home /private/runtime read VERSION_ID --historical --asset assets/ASSET_SHA256.png
+```
 
-## Where LangExtract fits
+Use the exact asset address returned by read. Runtime snapshot paths are hash
+addresses; use the media type when serving them. Export names include extensions.
+Pin a trusted bundle digest to authenticate the selected release; content hashes
+alone do not identify a publisher.
 
-[LangExtract](https://github.com/google/langextract) extracts structured information from text using LLMs and returns source grounding. In this design it fits **after document parsing**, for candidate fields and semantic brief generation. It is not used by v0.1, and no model/API key is required by the core.
+## Existing local LangExtract workflows
 
-Before a semantic summarizer can be integrated, it must return a candidate artifact with:
+[LangExtract](https://github.com/google/langextract) extracts candidate information
+from text. It sits after document parsing and is not a required core dependency.
 
-- Source hash, full-text hash, parser/normalization version and summarizer/model/prompt version.
-- Every claim's page and character span in the exact canonical source text, including units and applicability scope.
-- An explicit unsupported/ambiguous result when no grounded span exists; failed grounding cannot be repaired by invented text.
-- A separate review outcome and schema version; a new summary must create a newly reviewed version, never overwrite the existing brief silently.
+```sh
+agent-library --home /private/runtime langextract-input VERSION_ID --historical --page 1
+```
 
-Grounded extraction still needs evaluation: a cited fragment can omit a nearby exception or refer to a different model. Benchmark real document layouts in a private evaluation set before selecting a production parser or summarizer. No vendor-specific integration is promised until its full route passes those checks.
+The JSON response supplies result.text, source/extraction hashes, quality warnings
+and source spans in Unicode code-point offsets. Pass result.text to the installed
+LangExtract workflow with explicit examples and a configured local model. This
+command does not invoke a model or transmit data. Field extraction and semantic
+brief generation remain outside the publication engine.
+
+Compare returned intervals with this exact input. If a unique literal span repairs
+an absent interval, mark it as a fallback; ambiguous matches are not precise
+provenance. Matching OCR text does not prove accuracy against the original image.
+
+## Qualification and limits
+
+Synthetic checks exercise actual DOCX image byte identity, both merge directions,
+numeric text, export, archive/restore and deliberate corruption. XLSX checks preserve
+strings/formulas while blocking incomplete visuals. PDF checks use actual PNGs and
+text boxes. These are not clinical OCR accuracy or cloud/NAS deployment validation.
+
+Office containers have entry/expanded-size limits. Assets have an aggregate size
+ceiling. Parser subprocesses use fixed temporary filenames, timeouts and captured
+errors. This trusted single-host CLI is not a hostile-upload sandbox. Large corpora
+still require measured resource budgets and streaming export.
+
+See [commercial dependencies](commercial-dependencies.md) before selecting models,
+OCR plugins or hosted services.

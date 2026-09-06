@@ -15,6 +15,11 @@ class OcrOptionsTests(unittest.TestCase):
         def run(args, **kwargs):
             if "--version" in args:
                 return CompletedProcess(args, 0, stdout=b"2.0.0\n", stderr=b"")
+            if "screenshot" in args:
+                folder = Path(args[args.index("-o")+1])
+                folder.mkdir()
+                (folder / "page_1.png").write_bytes(b"\x89PNG\r\n\x1a\nsynthetic")
+                return CompletedProcess(args, 0, stdout=b"", stderr=b"")
             observed.extend(args)
             Path(args[args.index("-o")+1]).write_text(json.dumps({"pages":[{"page":1,"text":"Visible text layer"}]}))
             return CompletedProcess(args, 0, stdout=b"", stderr=stderr)

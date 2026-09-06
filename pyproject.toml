@@ -4,13 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-library"
-version = "0.1.0"
+version = "0.2.0"
 description = "An inspectable, versioned document library for AI agents. No vector database required."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [{name = "agent-library contributors"}]
 dependencies = []
+
+[project.optional-dependencies]
+office = ["markitdown[docx,xlsx]==0.1.7", "mammoth==1.11.0", "openpyxl==3.1.5", "markdownify==1.2.3"]
 
 [project.scripts]
 agent-library = "agent_library.cli:main"

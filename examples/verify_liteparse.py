@@ -37,6 +37,10 @@ def verify(base, office=False):
         assert "000123" in texts[0] if suffix == "pdf" else "000456" in texts[0]
         if suffix == "pdf":
             assert len(texts) == 2 and "Keep every page" in texts[1]
+        assert all(page["text_items"] and page["preview"] in review["assets"] for page in review["pages"])
+        preview = library.read(staged["version_id"], historical=True, asset=review["pages"][0]["preview"])
+        assert Path(preview["snapshot_path"]).read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+        assert review["capabilities"]["tables"] == "visual_only"
         assert "full.md#page-1" in library.read(staged["version_id"], brief="brief.md", historical=True)["markdown"]
         plan = library.plan(staged["version_id"], reason="Reviewed synthetic parser fixture")
         library.approve(plan["plan_id"], plan["digest"], "parser-verifier")
@@ -52,7 +56,8 @@ def verify(base, office=False):
     result = export_bundle(library, base / "bundle")
     assert result["documents"] == len(types) and result["verified"]
     return {"ok": True, "parser": "LiteParse 2.0.0", "tested": types, "partial_pdf_blocked": True,
-            "fulltext_and_brief_verified": True, "bundle_verified": True}
+            "fulltext_and_brief_verified": True, "bundle_verified": True,
+            "page_previews_and_text_boxes_preserved": True, "pdf_table_cells_reconstructed": False}
 
 
 if __name__ == "__main__":

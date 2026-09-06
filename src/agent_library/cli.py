@@ -22,6 +22,7 @@ def parser():
     ingest.add_argument("file", type=Path)
     ingest.add_argument("--metadata", type=Path)
     ingest.add_argument("--document-id")
+    ingest.add_argument("--parser", choices=["liteparse", "markitdown"], default="liteparse")
     ingest.add_argument("--ocr", action="store_true", help="Explicitly enable local LiteParse OCR")
     ingest.add_argument("--ocr-language", default="eng", help="Local OCR language(s), e.g. chi_tra+eng; used with --ocr")
     for name in ["scan", "status", "map"]:
@@ -48,9 +49,15 @@ def parser():
         if name == "read":
             read.add_argument("--page", type=int)
             read.add_argument("--source", action="store_true")
+            read.add_argument("--asset", help="Version-relative asset address returned by read")
         else:
             read.add_argument("--section", default="brief.md")
     sub.add_parser("history").add_argument("document_id")
+    fields = sub.add_parser("langextract-input", help="Exact version-bound text and source offsets; no model calls")
+    fields.add_argument("version_id")
+    fields.add_argument("--page", type=int)
+    fields.add_argument("--historical", action="store_true")
+    fields.add_argument("--allow-stale", action="store_true")
     sub.add_parser("audit").add_argument("--limit", type=int, default=100)
     sub.add_parser("export").add_argument("output", type=Path)
     verify = sub.add_parser("verify-bundle")
@@ -77,7 +84,7 @@ def dispatch(args):
     if args.command == "ingest":
         metadata = json.loads(args.metadata.read_text(encoding="utf-8")) if args.metadata else {}
         return library.ingest(args.file, metadata, document_id=args.document_id, ocr=args.ocr,
-                              ocr_language=args.ocr_language)
+                              ocr_language=args.ocr_language, parser=args.parser)
     if args.command in {"scan", "status", "map"}:
         return getattr(library, args.command)()
     if args.command == "plan":
@@ -91,9 +98,13 @@ def dispatch(args):
     if args.command in {"read", "brief"}:
         return library.read(args.version_id, historical=args.historical, allow_stale=args.allow_stale,
                             brief=args.section if args.command == "brief" else None,
-                            page=getattr(args, "page", None), source=getattr(args, "source", False))
+                            page=getattr(args, "page", None), source=getattr(args, "source", False),
+                            asset=getattr(args, "asset", None))
     if args.command == "history":
         return library.history(args.document_id)
+    if args.command == "langextract-input":
+        return library.langextract_input(args.version_id, page=args.page, historical=args.historical,
+                                         allow_stale=args.allow_stale)
     if args.command == "audit":
         return library.audit(args.limit)
     if args.command == "export":

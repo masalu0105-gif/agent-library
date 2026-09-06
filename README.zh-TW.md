@@ -11,15 +11,16 @@
 既有資料庫可先用 [唯讀清冊稽核](docs/inventory-audit.md)，找出同名衝突、
 缺少文字側車及未驗證內容；工具不會把同雜湊檔案自動刪除或合併。
 
-每一份原檔的每一個版本，都保留三種不同用途的內容：
+每一份原檔的每一個版本，都保留四種不同用途的內容：
 
 1. **原檔**：保留 PDF／Word 的原始位元組，提供查證與交付。
 2. **全文 Markdown**：完整保存解析器回傳的各頁文字，保留頁面位置，不用摘要替代全文。
 3. **重點 Markdown**：協助找路；長文件再拆成下一層重點，連回同一版本的全文頁面。
+4. **圖片與結構資產**：PDF 頁面預覽、文字座標、Word 嵌入圖片、儲存格及合併關係，和全文一起綁定版本與雜湊。
 
 Agent 的路徑是：**治理規則 → 總目錄 → 分類目錄 → 文件重點 → 章節重點 → 全文相關頁 → 原檔**。不需要一開始把所有文件塞進上下文，也不需要向量庫。
 
-## 第一版已經能做什麼
+## v0.2 已經能做什麼
 
 | 項目 | 狀態 |
 | --- | --- |
@@ -28,8 +29,9 @@ Agent 的路徑是：**治理規則 → 總目錄 → 分類目錄 → 文件重
 | 全文與獨立重點檔、長文件與大目錄分層 | 已實作；重點目前採原文摘錄導覽 |
 | 審閱、發布、取代舊版、封存、還原、稽核 | 已實作；單機操作人模式 |
 | 原檔／全文／重點／抽取結果一起驗證 | 已實作 |
+| 圖片／表格一起發布、驗證與還原 | 已實作；缺檔或內容變更會被攔下 |
 | NAS 正式部署、Google Drive 自動傳輸 | 下一階段；目前可匯出與驗證可攜發布包 |
-| LangExtract 或模型產生語意重點 | 下一階段；必須附上來源位置 |
+| 銜接已安裝的 LangExtract | 已提供文字、原件／萃取雜湊及字元位置；模型呼叫與語意重點仍由外部流程處理 |
 
 這是可運行的開源核心，尚未宣稱已接管任何公司的 NAS 或雲端資料庫。
 
@@ -60,6 +62,24 @@ python examples/verify_liteparse.py --office
 ```
 
 Windows PowerShell 可用 `npm.cmd`。正式文件操作方式見 [英文快速開始](README.md#operating-your-own-private-library)。
+
+若要直接解析 Word 內的圖片與合併表格，可使用本地 MarkItDown 組合解析路徑：
+
+```sh
+python -m pip install ".[office]"
+python examples/verify_multimodal.py
+agent-library --home /private/runtime ingest /private/sources/example.docx --parser markitdown
+agent-library --home /private/runtime langextract-input VERSION_ID --historical --page 1
+```
+
+**PDF 頁面圖與結構化表格分開標示。** LiteParse 路徑保留 PDF 圖像、座標及文字，
+還沒有重建 PDF 儲存格；Word 路徑能保存跨列／跨欄合併關係。Excel 保存儲存格、
+公式及合併資訊，但圖表與列印版面尚未完整處理，因此維持候選狀態。
+細節見 [解析規格](docs/parsers.md)。
+
+**營利使用已列為選型條件。** MarkItDown 採 MIT，LangExtract 採 Apache-2.0；
+程式庫授權與模型權重、外掛、雲端服務條款分開核對。這次採用的 Office 路徑
+不設定模型或雲端呼叫；商用依賴清單見 [授權紀錄](docs/commercial-dependencies.md)。
 
 ## 幾個刻意分開的觀念
 

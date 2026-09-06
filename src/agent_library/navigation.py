@@ -3,7 +3,7 @@ import json
 import math
 import posixpath
 
-BRIEF_METHOD = "extractive-navigation-v1"
+BRIEF_METHOD = "extractive-navigation-v2"
 
 
 def markdown_label(text: str) -> str:
@@ -44,6 +44,15 @@ def build_briefs(pages: list[dict], identity: dict, fulltext_hash: str) -> dict[
         elif len(selected) <= 8:
             for page in selected:
                 excerpt = markdown_label(page["text"].strip()[:160]) or "[No extracted text]"
+                visuals = []
+                if page.get("tables"):
+                    visuals.append(f"{len(page['tables'])} structured tables")
+                if page.get("images"):
+                    visuals.append(f"{len(page['images'])} embedded images")
+                if page.get("preview"):
+                    visuals.append("page preview available")
+                if visuals:
+                    excerpt += " (" + "; ".join(visuals) + ")"
                 target = posixpath.relpath("full.md", posixpath.dirname(address) or ".")
                 text += f"- [Page {page['number']}]({target}#page-{page['number']}): {excerpt}\n"
         else:

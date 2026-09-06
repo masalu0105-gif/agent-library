@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .core import RULES, Library, canonical, digest, no_links, require
 from .navigation import build_catalog
+from .artifacts import asset_manifest
 
 
 def export_bundle(library: Library, output: Path) -> dict:
@@ -25,6 +26,8 @@ def export_bundle(library: Library, output: Path) -> dict:
             metadata = json.loads(row["metadata"])
             files[folder + "/full.md"] = library._object(row["markdown_hash"])
             files[folder + "/extraction.json"] = library._object(row["extraction_hash"])
+            for name, asset in asset_manifest(json.loads(files[folder + "/extraction.json"])).items():
+                files[folder + "/" + name] = library._object(asset["sha256"])
             suffix = Path(row["filename"]).suffix.lower()
             require(suffix in policy["extensions"], "UNSUPPORTED_TYPE", "Published source type is outside current policy.")
             original = folder + "/original" + suffix
@@ -35,6 +38,7 @@ def export_bundle(library: Library, output: Path) -> dict:
             item = {"document_id": row["document_id"], "version_id": row["id"], "metadata": metadata,
                     "original_filename": row["filename"], "source_sha256": row["source_hash"], "original": original,
                     "brief": folder + "/brief.md", "fulltext": folder + "/full.md", "evidence_status": "unverified"}
+            item["extraction"] = folder + "/extraction.json"
             documents.append(item)
             groups.setdefault(metadata["kind"], []).append(item)
         catalog_entries = []
@@ -77,6 +81,14 @@ def verify_bundle(folder: Path, *, expected_sha256=None) -> dict:
     for item in doc["documents"]:
         require(all(item.get(key) in doc["files"] for key in ["brief", "fulltext", "original"]), "BUNDLE_SCHEMA", "Unresolved document reference.")
         require(doc["files"][item["original"]] == item.get("source_sha256"), "INTEGRITY", "Source reference hash mismatch.")
+        if "extraction" in item:
+            require(item["extraction"] in doc["files"], "BUNDLE_SCHEMA", "Missing extraction reference.")
+            extraction = json.loads((folder / item["extraction"]).read_text(encoding="utf-8"))
+            assets = asset_manifest(extraction)
+            for name, asset in assets.items():
+                address = str(Path(item["extraction"]).parent / name).replace("\\", "/")
+                require(doc["files"].get(address) == asset["sha256"], "INTEGRITY", "Unresolved extraction asset.")
+                require((folder / address).stat().st_size == asset["bytes"], "INTEGRITY", "Asset size mismatch.")
     actual = {p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()}
     require(actual == set(doc["files"]) | {"bundle.json"}, "BUNDLE_SCHEMA", "Unexpected or missing files in publication bundle.")
     return {"verified": True, "manifest_sha256": digest(raw), "documents": len(doc["documents"]),

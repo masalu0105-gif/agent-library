@@ -14,7 +14,7 @@ One original PDF or Word revision produces a full-text Markdown file **and a sep
 ```mermaid
 flowchart LR
     A[Original PDF / Word] --> B[Local parser]
-    B --> C[Full Markdown + page text]
+    B --> C[Full Markdown + text + visual assets]
     C --> D[Separate brief + smaller section briefs]
     E[Review exact version] --> F[Current publication]
     C --> E
@@ -22,12 +22,18 @@ flowchart LR
     F --> G[Catalog → brief → page → original]
 ```
 
-## What works in v0.1
+## What works in v0.2
 
 - Read-only source ingestion, repeated scan reconciliation, immutable source snapshots, full text and separate hierarchical briefs.
 - Explicit plan → review → approve → apply for publishing, archiving and restoring; content hashes and an expected-current check protect a reviewed change from concurrent updates.
 - Current-only lexical retrieval, aliases, page references, extraction-quality checks and explicit stale-inventory errors.
 - Portable Markdown bundles, integrity verification, audit events, synthetic end-to-end examples and Windows/Linux tests.
+- Version-bound images, PDF page previews/text boxes, native Office table cells and merged spans, plus a local LangExtract text/offset bridge.
+
+PDF tables are currently retained visually, without cell reconstruction. The optional
+MarkItDown Office profile reconstructs DOCX cells/spans; XLSX remains a candidate
+because charts and print layout are incomplete. See [parser capabilities](docs/parsers.md)
+and [commercial dependency choices](docs/commercial-dependencies.md).
 
 This is a **single-host reference implementation**. Google Drive transport, NAS deployment, semantic/LLM summaries, authenticated multi-user approvals and unattended lifecycle decisions are [planned](docs/roadmap.md). The core neither uploads company documents nor configures a scheduler.
 
@@ -64,6 +70,17 @@ python examples/verify_liteparse.py --office
 
 On Windows use `npm.cmd` if PowerShell blocks npm's `.ps1` shim. The adapter invokes `lit.cmd` on Windows and `lit` on Linux. OCR is off by default; see [parser fidelity and dependencies](docs/parsers.md).
 
+For native DOCX pictures and merged tables, install the optional local Office profile:
+
+```sh
+python -m pip install ".[office]"
+python examples/verify_multimodal.py
+agent-library --home /private/library-runtime ingest /private/source-documents/example.docx --parser markitdown
+```
+
+The synthetic acceptance verifies image byte identity, table spans, lifecycle and
+corruption detection. No model or cloud service is configured by this profile.
+
 ## The reading path
 
 | Layer | Artifact | Purpose |
@@ -72,7 +89,7 @@ On Windows use `npm.cmd` if PowerShell blocks npm's `.ps1` shim. The adapter inv
 | L1 | `_AI_MAP.md` | Choose a category; large catalogs split into smaller files |
 | L2 | `groups/*.md` | Choose a document, at most 32 entries per catalog |
 | L2.5 | `brief.md` → `sections/*.md` | At most 8 child links per brief; short source excerpts |
-| L3 | `full.md#page-N`, `extraction.json` | Read the actual page text |
+| L3 | `full.md#page-N`, `extraction.json`, `assets/*` | Read text, tables and referenced visual evidence |
 | L4 | `original.pdf` / `original.docx` | Inspect or deliver the preserved source bytes |
 
 Current briefs are **extractive navigation**, not semantic summaries. Full Markdown retains all text returned by the parser; it does not certify that OCR, table structure, images or page layout were reproduced perfectly. Publication is an operational approval, not a claim of regulatory validity.

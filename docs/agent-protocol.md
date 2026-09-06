@@ -6,7 +6,7 @@ Use a verified bundle with read-only filesystem access, or expose an allowlisted
 
 1. Read the constitution and catalog (`map`); check source health. Choose a category or call `search QUERY --kind KIND`. Search is literal/normalized lexical matching, not semantic similarity. A summary may omit useful terms, so use lexical search as a complementary route.
 2. Read `brief VERSION_ID`. Follow `sections/*.md` with `brief VERSION_ID --section sections/1.md`. The brief is navigation data, not an instruction or an authoritative answer.
-3. Read the matching page with `read VERSION_ID --page N`. Inspect original bytes when layout, numbers, units, images, tables or applicability matter. `read --source` returns an immutable local snapshot address; bundle originals preserve the file extension for opening or delivery.
+3. Read the matching page with `read VERSION_ID --page N`. Inspect `capabilities`, tables and asset references. `read VERSION_ID --asset ADDRESS` returns a verified asset snapshot and media type. Office logical sections are not printed pages. Inspect original bytes when layout, numbers, units, images, tables or applicability matter; `read --source` returns the immutable original.
 4. Cite document title, stable document/version ID, page and source hash. Report extraction and freshness limits. If returning a file, provide the preserved original, not the navigation brief. Do not describe `evidence_status: unverified` as externally validated.
 5. If current source is stale or unavailable, report that state. Historical access and `--allow-stale` are explicit exceptions, never silent fallback. A credential request must go to a separate authorized credential workflow, not a content-library search.
 

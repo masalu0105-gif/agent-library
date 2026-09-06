@@ -4,7 +4,9 @@ The [product specification](product-spec.md) defines the full quality-management
 scope, two authority modes, and future on-premises de-identification with governed
 cloud analysis. The stages below develop its document foundation.
 
-v0.1 is the executable local core, with a verified portable bundle boundary. The following phases describe concrete remaining work; none is implied to be enabled by installing the package.
+v0.2 includes the local core, versioned visual assets, a native Office profile and
+LangExtract text/offset input. PDF table reconstruction and semantic extraction are
+still qualification work. The phases below are not enabled by installing the package.
 
 ## 1. Private inventory and parser qualification
 

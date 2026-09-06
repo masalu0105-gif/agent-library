@@ -17,11 +17,13 @@ The spatial-library idea is related to [MemPalace](https://github.com/MemPalace/
 flowchart TB
     NAS[Allowlisted source folders] -->|read only; stable capture| I[Candidate ingestion]
     I --> O[Immutable original snapshot]
-    I --> P[Parser: page text and status]
+    I --> P[Parser: text, structure, visual assets and status]
     P --> F[Full Markdown]
     F --> B[Separate hierarchical briefs]
     O --> R[Review plan bound to all hashes]
     F --> R
+    P --> V[Immutable images, tables and raw parser output]
+    V --> R
     B --> R
     R --> A[Explicit operator approval]
     A --> C[Atomic current-version pointer]
@@ -49,7 +51,7 @@ Document ID is stable within this runtime; version ID identifies one immutable i
 private-runtime/
   policy.json          # Source allowlists and executable limits
   library.sqlite3      # Identity, versions, plans, audit and scan observations
-  objects/<sha256>     # Original bytes, full Markdown, extraction JSON, brief-set JSON
+  objects/<sha256>     # Originals, Markdown, extraction/brief JSON, images and tables
 
 private-release/
   00_CONSTITUTION.md
@@ -59,6 +61,8 @@ private-release/
     original.pdf      # Or another supported original extension
     full.md
     extraction.json
+    assets/<sha>.png   # Page previews or embedded images
+    assets/<sha>.html  # Escaped tables with merged cells
     brief.md
     sections/1.md     # Only needed for larger documents
   bundle.json         # Written last; contains every exported file hash
@@ -67,6 +71,13 @@ private-release/
 Use **local disk** for the runtime; do not place SQLite on an SMB/NFS/cloud-synchronized folder. NAS may hold the read-only sources. The Python standard library handles identity, JSON, hashing and transactions. SQLite is an explicit state ledger, not a vector index. Portable bundles are plain files that remain readable without SQLite or Python.
 
 Every full document has one full Markdown per version. Extra `sections/*.md` are smaller navigation briefs, not alternate full texts. Catalogs have at most 32 child links, document briefs at most eight. Small source excerpts keep navigation inspectable. Current grouping follows categories and page ranges, not semantic headings; long plain-text inputs currently have one logical page.
+
+Extraction schema 2 records visual assets and parser capabilities. Existing schema 1
+versions are read without migration. Asset hashes are transitively bound to approval
+through the extraction hash and are checked by reads, publication and bundle export.
+The same source hash can have multiple extraction versions; parser upgrades do not
+replace current automatically. Office sections/worksheets are explicitly logical
+locations, not printed pages. See [fidelity limits](parsers.md).
 
 The content store writes an object to a temporary file, flushes it, then atomically links it into its hash address without overwriting an existing blob. Publication updates current state and audit within one SQLite transaction, followed by a new-connection readback. Interrupted ingestion may leave an unreferenced blob; automatic garbage collection is deliberately absent. Power-loss durability, disk corruption and loss of the entire device require independent backup and restore testing.
 
