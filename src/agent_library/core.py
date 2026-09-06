@@ -64,7 +64,8 @@ def no_links(path: Path) -> Path:
             continue
         require(not part.is_symlink() and not (getattr(info, "st_file_attributes", 0) & 0x400),
                 "UNSAFE_PATH", "Symlinks and reparse points are not supported.")
-    return path
+    # Validate links before resolving; then expand Windows 8.3 aliases consistently.
+    return path.resolve(strict=False)
 
 
 def metadata_checked(value: dict) -> dict:

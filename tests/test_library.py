@@ -211,7 +211,7 @@ class LibraryTests(unittest.TestCase):
         stage = self.publish()
         self.file.unlink()
         report = self.lib.scan()
-        self.assertEqual(report["missing"], [str(self.file)])
+        self.assertEqual(report["missing"], [str(self.file.resolve())])
         self.assertEqual(self.lib.status()["current_documents"], 1)
         self.assertEqual(self.lib.read(stage["version_id"])["source_sha256"], self.lib.history(stage["document_id"])["versions"][0]["source_hash"])
 
@@ -251,6 +251,22 @@ class LibraryTests(unittest.TestCase):
         except OSError:
             self.skipTest("OS does not permit creating test symlinks")
         self.assert_code("UNSAFE_PATH", lambda: self.lib.ingest(link))
+
+    @unittest.skipUnless(os.name == "nt", "Windows short-name API")
+    def test_windows_short_path_resolves_to_same_document(self):
+        import ctypes
+        from ctypes import wintypes
+        short_path = ctypes.windll.kernel32.GetShortPathNameW
+        short_path.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
+        short_path.restype = wintypes.DWORD
+        buffer = ctypes.create_unicode_buffer(32768)
+        size = short_path(str(self.file), buffer, len(buffer))
+        if not size or buffer.value == str(self.file):
+            self.skipTest("Filesystem has no short-name alias")
+        first = self.stage()
+        second = self.lib.ingest(Path(buffer.value))
+        self.assertEqual(first["document_id"], second["document_id"])
+        self.assertTrue(second["deduplicated"])
 
     def test_policy_missing_and_unknown_schema_fail_closed(self):
         path = self.lib.home / "policy.json"
