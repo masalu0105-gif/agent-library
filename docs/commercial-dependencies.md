@@ -8,7 +8,9 @@ Review exact versions and preserve required notices when distributing a product.
 | agent-library | [MIT](../LICENSE) | Commercial products permitted; preserve required notices |
 | Microsoft MarkItDown | [MIT](https://github.com/microsoft/markitdown/blob/main/LICENSE) | Optional Office profile, pinned 0.1.7; commercial use permitted under MIT |
 | Google LangExtract | [Apache-2.0](https://github.com/google/langextract/blob/main/LICENSE) | Existing local installations consume version-bound text; models are separately selected |
-| Docling | [MIT code](https://github.com/docling-project/docling/blob/main/LICENSE), [model licenses separate](https://github.com/docling-project/docling#license) | Candidate for layout/table extraction, not a dependency or tested parser in v0.2 |
+| Docling | [MIT code](https://github.com/docling-project/docling/blob/main/LICENSE), [model licenses separate](https://github.com/docling-project/docling#license) | Optional local PDF/image profile, version-bound 2.126.0 stack; no default dependency or cloud service |
+| Docling layout Heron | [Apache-2.0 model notice](https://huggingface.co/docling-project/docling-layout-heron) | Explicit local artifact manifest; pinned revision and file hashes are recorded per extraction |
+| Docling TableFormer snapshot | [CDLA-Permissive-2.0](https://github.com/docling-project/docling-models) | Accurate v1 table profile, pinned to the selected v2.3.0 snapshot; preserve its notice separately |
 | PaddleOCR | [Apache-2.0 code](https://github.com/PaddlePaddle/PaddleOCR) | Candidate for OCR/structure; check selected models and dependencies |
 
 Our Office profile uses MarkItDown's HTML renderer, Mammoth, openpyxl and
@@ -28,10 +30,13 @@ lightweight Markdown conversion tool and warns about high-fidelity conversion.
 Broader format support and optional cloud/vision plugins do not automatically
 provide complete table structure or our local profile's data flow.
 
-Docling supports layout, reading order, tables, images and multiple export formats.
-Its MIT code license does not grant rights to every optional model. A future
-integration must record the selected package/model revision, original license,
-preprocessing configuration and private benchmark result.
+The optional Docling profile supports the bounded layout, reading-order, table and
+image path described in `parsers.md`. Its MIT code license does not grant rights to
+every optional model. The selected Heron layout model is Apache-2.0 and the pinned
+TableFormer snapshot is CDLA-Permissive-2.0; retain those model notices and any
+transitive redistribution notices in the product inventory. Extraction metadata
+records package/model revisions and preprocessing settings, while private canary
+results remain outside this public repository.
 
 [MinerU's current license](https://github.com/opendatalab/MinerU/blob/master/LICENSE.md)
 adds commercial-scale thresholds and online-service attribution to Apache terms.

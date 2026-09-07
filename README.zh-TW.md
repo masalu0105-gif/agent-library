@@ -77,6 +77,20 @@ agent-library --home /private/runtime langextract-input VERSION_ID --historical 
 公式及合併資訊，但圖表與列印版面尚未完整處理，因此維持候選狀態。
 細節見 [解析規格](docs/parsers.md)。
 
+另有可選的本機 Docling PDF／PNG／JPEG 路徑，可保留頁面預覽、圖片及原生表格
+候選。安裝後必須明確提供本機模型 manifest：
+
+```sh
+python -m pip install ".[docling]"
+agent-library --home /local/runtime ingest /local/sources/guide.pdf --parser docling \
+  --docling-model-manifest /local/docling-models.json
+```
+
+預設使用 CPU；只有本機已準備好 CUDA 時才使用 `--docling-device cuda`。OCR
+仍須明確開啟，render scale 可調整。Docling 的表格／OCR 仍是未驗證候選，模型
+遺失、頁面不完整或 pipeline 失敗都會 fail-closed。模型 manifest、雜湊與授權邊界
+見 [解析規格](docs/parsers.md) 及 [授權紀錄](docs/commercial-dependencies.md)。
+
 **營利使用已列為選型條件。** MarkItDown 採 MIT，LangExtract 採 Apache-2.0；
 程式庫授權與模型權重、外掛、雲端服務條款分開核對。這次採用的 Office 路徑
 不設定模型或雲端呼叫；商用依賴清單見 [授權紀錄](docs/commercial-dependencies.md)。

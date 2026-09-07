@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-library"
-version = "0.2.1"
+version = "0.3.0"
 description = "An inspectable, versioned document library for AI agents. No vector database required."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,6 +14,17 @@ dependencies = []
 
 [project.optional-dependencies]
 office = ["markitdown[docx,xlsx]==0.1.7", "mammoth==1.11.0", "openpyxl==3.1.5", "markdownify==1.2.3"]
+# Local PDF/image parsing only.  Torch is intentionally left accelerator-aware;
+# install a matching CPU or CUDA wheel for the target host.
+docling = [
+    "docling-slim==2.126.0",
+    "docling-core==2.95.0",
+    "docling-ibm-models==4.0.2",
+    "docling-parse==7.17.0",
+    "torch>=2.14.0,<2.15.0",
+    "transformers==5.16.1",
+    "opencv-python-headless==5.0.0.93",
+]
 
 [project.scripts]
 agent-library = "agent_library.cli:main"
