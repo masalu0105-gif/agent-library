@@ -223,12 +223,18 @@ class Library:
         require(digest(data) == sha, "INTEGRITY", "Snapshot hash mismatch.")
         return data
 
-    def ingest(self, path: Path, metadata=None, *, document_id=None, ocr=False, ocr_language="eng", parser="liteparse") -> dict:
+    def ingest(self, path: Path, metadata=None, *, document_id=None, ocr=False, ocr_language="eng", parser="liteparse",
+               docling_model_manifest=None, docling_device="cpu", docling_ocr_scale=3.0) -> dict:
         policy = self._policy()
         path = self._source(path, policy)
         data = self._capture(path, policy)
         metadata = metadata_checked(dict(metadata or {}))
-        parsed = extract(data, path.suffix.lower(), ocr=ocr, ocr_language=ocr_language, parser=parser)
+        extract_options = {"ocr": ocr, "ocr_language": ocr_language, "parser": parser}
+        if parser == "docling":
+            extract_options.update({"docling_model_manifest": docling_model_manifest,
+                                    "docling_device": docling_device,
+                                    "docling_ocr_scale": docling_ocr_scale})
+        parsed = extract(data, path.suffix.lower(), **extract_options)
         blobs = parsed.pop("_asset_bytes", {})
         try:
             assets = asset_manifest(parsed)

@@ -22,9 +22,15 @@ def parser():
     ingest.add_argument("file", type=Path)
     ingest.add_argument("--metadata", type=Path)
     ingest.add_argument("--document-id")
-    ingest.add_argument("--parser", choices=["liteparse", "markitdown"], default="liteparse")
-    ingest.add_argument("--ocr", action="store_true", help="Explicitly enable local LiteParse OCR")
+    ingest.add_argument("--parser", choices=["liteparse", "markitdown", "docling"], default="liteparse")
+    ingest.add_argument("--ocr", action="store_true", help="Explicitly enable local OCR for the selected parser")
     ingest.add_argument("--ocr-language", default="eng", help="Local OCR language(s), e.g. chi_tra+eng; used with --ocr")
+    ingest.add_argument("--docling-model-manifest", type=Path,
+                        help="Explicit local Docling model manifest; required by --parser docling")
+    ingest.add_argument("--docling-device", choices=["cpu", "cuda"], default="cpu",
+                        help="Docling execution device (CPU by default)")
+    ingest.add_argument("--docling-ocr-scale", type=float, default=3.0,
+                        help="Docling OCR render scale; used with --ocr (default: 3.0)")
     for name in ["scan", "status", "map"]:
         sub.add_parser(name)
     plan = sub.add_parser("plan")
@@ -84,7 +90,9 @@ def dispatch(args):
     if args.command == "ingest":
         metadata = json.loads(args.metadata.read_text(encoding="utf-8")) if args.metadata else {}
         return library.ingest(args.file, metadata, document_id=args.document_id, ocr=args.ocr,
-                              ocr_language=args.ocr_language, parser=args.parser)
+                              ocr_language=args.ocr_language, parser=args.parser,
+                              docling_model_manifest=args.docling_model_manifest,
+                              docling_device=args.docling_device, docling_ocr_scale=args.docling_ocr_scale)
     if args.command in {"scan", "status", "map"}:
         return getattr(library, args.command)()
     if args.command == "plan":

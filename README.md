@@ -81,6 +81,21 @@ agent-library --home /private/library-runtime ingest /private/source-documents/e
 The synthetic acceptance verifies image byte identity, table spans, lifecycle and
 corruption detection. No model or cloud service is configured by this profile.
 
+For an optional local PDF/image profile with native table candidates, install the
+version-bound Docling profile and provide a hashed local model manifest:
+
+```sh
+python -m pip install ".[docling]"
+agent-library --home /local/runtime ingest /local/sources/guide.pdf --parser docling \
+  --docling-model-manifest /local/docling-models.json
+```
+
+CPU is the default; use `--docling-device cuda` only when the local environment is
+provisioned for it. OCR is opt-in and its render scale is configurable. Docling
+table/OCR output remains unverified, and missing models, partial pages or pipeline
+failures stay fail-closed. See [parser fidelity and dependencies](docs/parsers.md)
+for the manifest and license boundaries.
+
 ## The reading path
 
 | Layer | Artifact | Purpose |
